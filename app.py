@@ -38,7 +38,7 @@ except ModuleNotFoundError:
 
 # Cấu hình trang Streamlit
 st.set_page_config(
-    page_title="App Thẩm định Hợp đồng Mua bán",
+    page_title="Trợ lý thẩm định hợp đồng và hoàn thiện hợp đồng",
     page_icon="📝",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -508,7 +508,7 @@ def export_gemini_table_to_pdf(gemini_md, contract_name="Hợp đồng"):
 # Giao diện chính ứng dụng
 st.markdown("""
 <div class="header-container">
-    <div class="header-title">Trợ lý Thẩm định Hợp đồng Mua bán</div>
+    <div class="header-title">Trợ lý thẩm định hợp đồng và hoàn thiện hợp đồng</div>
     <div class="header-subtitle">Hệ thống phân tích điều khoản, phát hiện rủi ro và tự động lập Báo cáo Thẩm định pháp lý</div>
 </div>
 """, unsafe_allow_html=True)
@@ -618,10 +618,8 @@ if not st.session_state.get("full_contract_text"):
     st.markdown("""
     <div style="background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 2.5rem; text-align: center; margin-top: 1.5rem; margin-bottom: 1.5rem;">
         <img src="https://img.icons8.com/external-flatart-icons-outline-flatarticons/100/external-contract-business-and-finance-flatart-icons-outline-flatarticons.png" style="width: 80px; opacity: 0.8; margin-bottom: 1rem;"/>
-        <h3 style="color: #1e3a8a; margin-bottom: 0.5rem;">Vui lòng tải lên tài liệu hợp đồng</h3>
-        <p style="color: #64748b; max-width: 600px; margin: 0 auto 1rem auto;">
-            Hệ thống hỗ trợ tải lên các tệp hợp đồng Word (.docx). Sau khi tải lên, hệ thống sẽ tự động quét văn bản gốc và lập bảng báo cáo đánh giá rủi ro pháp lý theo Luật Nhà ở và Luật Kinh doanh Bất động sản Việt Nam.
-        </p>
+        <h3 style="color: #1e3a8a; margin-bottom: 0.5rem; font-size: 1.35rem; line-height: 1.4; font-weight: 600;">Xin vui lòng tải hợp đồng mẫu và hợp đồng cần thẩm định để trợ lý tiến hành thực hiện công việc giúp bạn</h3>
+        <p style="color: #64748b; font-size: 1rem; font-weight: 500;">(Chỉ hỗ trợ file Word)</p>
     </div>
     """, unsafe_allow_html=True)
     
