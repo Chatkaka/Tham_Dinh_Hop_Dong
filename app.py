@@ -16,22 +16,24 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
+    # 1. Thử import từ thư mục utils cục bộ
     from utils.docx_parser import doc_hop_dong_toan_dien
-except ModuleNotFoundError as e:
-    st.error(f"Lỗi khởi chạy ứng dụng (Import Error): {e}")
-    st.markdown("### 🔍 Thông tin chẩn đoán lỗi (Diagnostic Info):")
-    st.write(f"- **Thư mục hoạt động hiện tại (CWD):** `{os.getcwd()}`")
-    st.write(f"- **Đường dẫn file app.py:** `{os.path.abspath(__file__)}`")
-    st.write(f"- **Danh sách sys.path:**", sys.path)
+except ModuleNotFoundError:
     try:
-        st.write(f"- **Các tệp/thư mục ở thư mục gốc:**", os.listdir("."))
-        if os.path.exists("utils"):
-            st.write(f"- **Các tệp trong thư mục 'utils':**", os.listdir("utils"))
-        else:
-            st.error("- **CẢNH BÁO: Không tìm thấy thư mục 'utils' trên GitHub!** Bạn có thể đã quên commit hoặc chưa push thư mục này lên repository.")
-    except Exception as ex:
-        st.write(f"Không thể quét thư mục: {ex}")
-    st.stop()
+        # 2. Fallback: Thử import trực tiếp từ thư mục gốc (nếu được tải lên root trên GitHub)
+        from docx_parser import doc_hop_dong_toan_dien
+    except ModuleNotFoundError as e:
+        st.error(f"Lỗi khởi chạy ứng dụng (Import Error): {e}")
+        st.markdown("### 🔍 Thông tin chẩn đoán lỗi (Diagnostic Info):")
+        st.write(f"- **Thư mục hoạt động hiện tại (CWD):** `{os.getcwd()}`")
+        st.write(f"- **Đường dẫn file app.py:** `{os.path.abspath(__file__)}`")
+        st.write(f"- **Danh sách sys.path:**", sys.path)
+        try:
+            st.write(f"- **Các tệp/thư mục ở thư mục gốc:**", os.listdir("."))
+        except Exception as ex:
+            st.write(f"Không thể quét thư mục: {ex}")
+        st.stop()
+
 
 
 # Cấu hình trang Streamlit
