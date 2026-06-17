@@ -1,6 +1,7 @@
 import io
 import os
 import re
+import sys
 import requests
 import pandas as pd
 import streamlit as st
@@ -9,6 +10,10 @@ from datetime import datetime
 from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+# Đảm bảo Streamlit Cloud có thể định vị được thư mục utils
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 
 from utils.docx_parser import doc_hop_dong_toan_dien
 # from utils.appraiser import appraise_contract
