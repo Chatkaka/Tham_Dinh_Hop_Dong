@@ -393,12 +393,51 @@ def export_gemini_table_to_word(gemini_md, contract_name="Hợp đồng"):
 
 
 # Helper: Xuất báo cáo AI sang tệp PDF
+# Helper: Loại bỏ dấu tiếng Việt để fallback trong PDF nếu không có font hỗ trợ
+def xoa_dau_tieng_viet(text):
+    import unicodedata
+    if not isinstance(text, str):
+        return text
+    text = unicodedata.normalize('NFD', text)
+    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+    text = text.replace('đ', 'd').replace('Đ', 'D')
+    return text
+
+# Helper: Xuất báo cáo AI sang tệp PDF
 def export_gemini_table_to_pdf(gemini_md, contract_name="Hợp đồng"):
     try:
         from fpdf import FPDF
     except ImportError:
         return b"FPDF2 not installed"
         
+    import os
+    import requests
+    
+    # Tạo thư mục fonts và tải Roboto về nếu chưa có
+    font_dir = "fonts"
+    os.makedirs(font_dir, exist_ok=True)
+    regular_path = os.path.join(font_dir, "Roboto-Regular.ttf")
+    bold_path = os.path.join(font_dir, "Roboto-Bold.ttf")
+    
+    # Tải font từ Google Fonts github repo nếu chưa tồn tại cục bộ
+    if not os.path.exists(regular_path):
+        try:
+            r = requests.get("https://github.com/google/fonts/raw/main/apache/roboto/static/Roboto-Regular.ttf", timeout=15)
+            if r.status_code == 200:
+                with open(regular_path, "wb") as f:
+                    f.write(r.content)
+        except Exception:
+            pass
+            
+    if not os.path.exists(bold_path):
+        try:
+            r = requests.get("https://github.com/google/fonts/raw/main/apache/roboto/static/Roboto-Bold.ttf", timeout=15)
+            if r.status_code == 200:
+                with open(bold_path, "wb") as f:
+                    f.write(r.content)
+        except Exception:
+            pass
+            
     class PDF(FPDF):
         def header(self):
             pass
@@ -406,17 +445,38 @@ def export_gemini_table_to_pdf(gemini_md, contract_name="Hợp đồng"):
     pdf = PDF(orientation='L', unit='mm', format='A4')
     pdf.add_page()
     
-    try:
-        pdf.add_font('Arial', '', r'C:\Windows\Fonts\arial.ttf')
-        pdf.add_font('Arial', 'B', r'C:\Windows\Fonts\arialbd.ttf')
-        font_name = 'Arial'
-    except Exception:
-        font_name = 'helvetica'
-        
+    font_name = 'helvetica'
+    
+    # Đăng ký font Roboto hỗ trợ tiếng Việt
+    if os.path.exists(regular_path) and os.path.exists(bold_path):
+        try:
+            pdf.add_font('Roboto', '', regular_path)
+            pdf.add_font('Roboto', 'B', bold_path)
+            font_name = 'Roboto'
+        except Exception:
+            pass
+            
+    # Fallback nếu tải font thất bại
+    if font_name == 'helvetica':
+        try:
+            pdf.add_font('Arial', '', r'C:\Windows\Fonts\arial.ttf')
+            pdf.add_font('Arial', 'B', r'C:\Windows\Fonts\arialbd.ttf')
+            font_name = 'Arial'
+        except Exception:
+            font_name = 'helvetica'
+            
     pdf.set_font(font_name, 'B', 14)
-    pdf.cell(0, 10, "BÁO CÁO THẨM ĐỊNH HỢP ĐỒNG BẰNG TRÍ TUỆ NHÂN TẠO (GEMINI)", new_x="LMARGIN", new_y="NEXT", align='C')
+    
+    title_text = "BÁO CÁO THẨM ĐỊNH HỢP ĐỒNG BẰNG TRÍ TUỆ NHÂN TẠO (GEMINI)"
+    info_text = f"Tên văn bản: {contract_name} | Ngày thực hiện: {datetime.now().strftime('%d/%m/%Y')}"
+    
+    if font_name == 'helvetica':
+        title_text = xoa_dau_tieng_viet(title_text)
+        info_text = xoa_dau_tieng_viet(info_text)
+        
+    pdf.cell(0, 10, title_text, new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.set_font(font_name, '', 10)
-    pdf.cell(0, 10, f"Tên văn bản: {contract_name} | Ngày thực hiện: {datetime.now().strftime('%d/%m/%Y')}", new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.cell(0, 10, info_text, new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.ln(5)
     
     rows = parse_markdown_table(gemini_md)
@@ -426,14 +486,20 @@ def export_gemini_table_to_pdf(gemini_md, contract_name="Hợp đồng"):
             header_row = table.row()
             pdf.set_font(font_name, 'B', 9)
             for text in headers:
+                if font_name == 'helvetica':
+                    text = xoa_dau_tieng_viet(text)
                 header_row.cell(text)
                 
             pdf.set_font(font_name, '', 9)
             for cells in rows[1:]:
                 data_row = table.row()
                 for text in cells:
+                    if font_name == 'helvetica':
+                        text = xoa_dau_tieng_viet(text)
                     data_row.cell(text)
     else:
+        if font_name == 'helvetica':
+            gemini_md = xoa_dau_tieng_viet(gemini_md)
         pdf.multi_cell(0, 10, gemini_md)
         
     return bytes(pdf.output())
