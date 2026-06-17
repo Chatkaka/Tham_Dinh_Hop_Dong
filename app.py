@@ -219,16 +219,42 @@ def load_templates(selected_files=None):
         
     return "\n\n".join(template_texts)
 
+# Helper: Gọi Gemini API trực tiếp bằng REST để đảm bảo không bị nghẽn (hang) trên Cloud
+def call_gemini_api_rest(prompt, api_key):
+    import requests
+    import json
+    
+    api_key_clean = api_key.strip()
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key_clean}"
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": prompt}
+                ]
+            }
+        ]
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=90)
+        if response.status_code == 200:
+            res_json = response.json()
+            try:
+                return res_json['candidates'][0]['content']['parts'][0]['text']
+            except Exception as e:
+                return f"Lỗi cấu trúc phản hồi từ API: {str(e)}. Phản hồi thô: {response.text}"
+        else:
+            return f"Lỗi gọi Gemini API (HTTP {response.status_code}): {response.text}"
+    except requests.exceptions.Timeout:
+        return "Lỗi: Kết nối tới Gemini API bị quá thời gian chờ (Timeout 90 giây). Vui lòng thử lại."
+    except Exception as e:
+        return f"Lỗi kết nối API: {str(e)}"
+
 # Helper: Gọi Gemini API để thẩm định hợp đồng
 def tham_dinh_bang_gemini(noi_dung_hop_dong, api_key, tieu_chuan_doi_chieu):
-    try:
-        from google import genai
-    except ImportError:
-        return "Lỗi: Thư viện google-genai chưa được cài đặt. Vui lòng cài đặt trước."
-        
-    try:
-        client = genai.Client(api_key=api_key)
-        prompt_chuyen_gia = f"""
+    prompt_chuyen_gia = f"""
 Mục tiêu:
 Bạn là một Chuyên gia Pháp lý và Luật sư doanh nghiệp dày dạn kinh nghiệm. Nhiệm vụ của bạn là thẩm định chi tiết các điều khoản trong văn bản hợp đồng được cung cấp, dựa trên cơ sở pháp luật hiện hành của Việt Nam.
 
@@ -257,24 +283,11 @@ Tiêu chuẩn đối chiếu (Các file hợp đồng mẫu):
 Nội dung hợp đồng:
 {noi_dung_hop_dong}
 """
-        response = client.models.generate_content(
-            model='gemini-3.5-flash',
-            contents=prompt_chuyen_gia,
-        )
-        return response.text
-    except Exception as e:
-        return f"Lỗi gọi Gemini API: {str(e)}"
+    return call_gemini_api_rest(prompt_chuyen_gia, api_key)
 
 # Helper: Gọi Gemini API để chỉnh sửa hợp đồng theo yêu cầu
 def chinh_sua_hop_dong_bang_gemini(noi_dung_hop_dong, api_key, yeu_cau_chinh_sua):
-    try:
-        from google import genai
-    except ImportError:
-        return "Lỗi: Thư viện google-genai chưa được cài đặt. Vui lòng cài đặt trước."
-        
-    try:
-        client = genai.Client(api_key=api_key)
-        prompt_chinh_sua = f"""
+    prompt_chinh_sua = f"""
 Mục tiêu:
 Bạn là một Chuyên gia Pháp lý và Luật sư doanh nghiệp dày dạn kinh nghiệm. Nhiệm vụ của bạn là thực hiện chỉnh sửa, tối ưu hóa, viết lại hoặc bổ sung các điều khoản trong hợp đồng dựa trên yêu cầu cụ thể của người dùng, đảm bảo tính chặt chẽ về mặt pháp lý, hạn chế tối đa rủi ro cho các bên và sử dụng ngôn ngữ pháp lý chuyên nghiệp.
 
@@ -298,13 +311,7 @@ Hướng dẫn thực hiện:
    - **Nội dung đề xuất chỉnh sửa mới**: Đoạn văn bản hoàn chỉnh sau khi đã được viết lại/tối ưu.
    - **Giải thích & Phân tích pháp lý**: Giải thích ngắn gọn các điểm cải tiến và lợi ích pháp lý của phương án mới.
 """
-        response = client.models.generate_content(
-            model='gemini-3.5-flash',
-            contents=prompt_chinh_sua,
-        )
-        return response.text
-    except Exception as e:
-        return f"Lỗi gọi Gemini API khi chỉnh sửa: {str(e)}"
+    return call_gemini_api_rest(prompt_chinh_sua, api_key)
 
 # Helper: Phân tích bảng Markdown từ văn bản Gemini
 def parse_markdown_table(md_text):
@@ -716,6 +723,7 @@ else:
                         "Tối ưu hóa các điều khoản về quyền và nghĩa vụ của Bên Mua để chặt chẽ hơn.",
                         "Tăng mức phạt vi phạm hợp đồng và bổ sung bồi thường thiệt hại tối đa pháp luật cho phép.",
                         "Làm rõ điều khoản Bất khả kháng chi tiết, bổ sung các sự kiện như thiên tai, dịch bệnh.",
+                        "Kiểm tra sự phù hợp và tính thống nhất giữa các Phụ lục và các điều khoản trong hợp đồng chính.",
                         "Chỉnh sửa điều khoản Giải quyết tranh chấp theo hướng ưu tiên hòa giải trước khi ra Tòa án."
                     ]
                     
