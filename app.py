@@ -1,18 +1,42 @@
-import io
-import os
-import re
-import sys
-import requests
-import pandas as pd
 import streamlit as st
-from fpdf import FPDF
-from datetime import datetime
-from docx import Document
-from docx.shared import Pt
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+# Cấu hình trang Streamlit phải là lệnh đầu tiên được gọi trước mọi hiển thị khác
+st.set_page_config(
+    page_title="Trợ lý thẩm định hợp đồng và hoàn thiện hợp đồng",
+    page_icon="📝",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Nhập các thư viện hệ thống và thư viện ngoài một cách an toàn
+try:
+    import io
+    import os
+    import re
+    import sys
+    import requests
+    import pandas as pd
+    from fpdf import FPDF
+    from datetime import datetime
+    from docx import Document
+    from docx.shared import Pt
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+except ImportError as e:
+    st.error(f"Lỗi thiếu thư viện cài đặt trên hệ thống: {e}")
+    st.markdown("### 🛠️ Hướng dẫn khắc phục:")
+    st.write("Vui lòng kiểm tra xem tệp `requirements.txt` trên GitHub đã được cập nhật đầy đủ chưa:")
+    st.code("""
+streamlit>=1.35.0
+python-docx>=1.1.0
+pandas>=2.0.0
+openpyxl>=3.1.0
+xlsxwriter>=3.1.0
+fpdf2>=2.7.0
+google-genai>=0.1.0
+    """)
+    st.stop()
 
 # Đảm bảo Streamlit Cloud có thể định vị được thư mục utils
-# Sử dụng insert(0, ...) để ưu tiên thư mục cục bộ trước site-packages toàn cục
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
@@ -33,16 +57,6 @@ except ModuleNotFoundError:
         except Exception as ex:
             st.write(f"Không thể quét thư mục: {ex}")
         st.stop()
-
-
-
-# Cấu hình trang Streamlit
-st.set_page_config(
-    page_title="Trợ lý thẩm định hợp đồng và hoàn thiện hợp đồng",
-    page_icon="📝",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Nhúng CSS tùy chỉnh để tối ưu hóa trải nghiệm giao diện người dùng
 st.markdown("""
