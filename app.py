@@ -259,6 +259,34 @@ def call_gemini_api_rest(prompt, api_key):
                 return res_json['candidates'][0]['content']['parts'][0]['text']
             except Exception as e:
                 return f"Lỗi cấu trúc phản hồi từ API: {str(e)}. Phản hồi thô: {response.text}"
+        elif response.status_code == 429:
+            # Phân tích thông báo lỗi để trích xuất thời gian chờ (nếu có)
+            msg = ""
+            try:
+                res_json = response.json()
+                msg = res_json.get('error', {}).get('message', '')
+            except Exception:
+                msg = response.text
+            
+            wait_time = ""
+            if "retry in" in msg:
+                try:
+                    import re
+                    match = re.search(r'retry in ([\d\.]+s|[\d\.]+ seconds)', msg)
+                    if match:
+                        wait_time = f" (Vui lòng thử lại sau khoảng {match.group(1)})"
+                except Exception:
+                    pass
+                    
+            return f"""⚠️ **LỖI HẠN MỨC YÊU CẦU (HTTP 429 - RESOURCE EXHAUSTED)**
+
+Tài khoản hoặc khóa API Key của bạn đã vượt quá giới hạn yêu cầu cho phép của Google Gemini (Gói miễn phí Free Tier){wait_time}.
+
+**Cách khắc phục:**
+1. **Chờ đợi**: Gói miễn phí thường giới hạn số lượng yêu cầu mỗi phút (15 RPM). Bạn chỉ cần đợi từ 10-30 giây rồi nhấn chạy lại.
+2. **Đổi API Key**: Nếu bạn đã gọi quá nhiều trong ngày (vượt quá hạn mức ngày), hãy đăng nhập vào Google AI Studio để tạo và nhập một khóa API mới.
+3. **Nâng cấp tài khoản**: Thiết lập thanh toán Pay-as-you-go trên Google AI Studio để có hạn mức cao hơn và ổn định hơn.
+"""
         else:
             return f"Lỗi gọi Gemini API (HTTP {response.status_code}): {response.text}"
     except requests.exceptions.Timeout:
