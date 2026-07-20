@@ -238,6 +238,8 @@ def call_gemini_api_rest(prompt, api_key):
     import requests
     import json
     
+    import time
+    
     api_key_clean = api_key.strip()
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key_clean}"
     headers = {"Content-Type": "application/json"}
@@ -251,48 +253,81 @@ def call_gemini_api_rest(prompt, api_key):
         ]
     }
     
-    try:
-        response = requests.post(url, headers=headers, json=payload, timeout=180)
-        if response.status_code == 200:
-            res_json = response.json()
-            try:
-                return res_json['candidates'][0]['content']['parts'][0]['text']
-            except Exception as e:
-                return f"Lỗi cấu trúc phản hồi từ API: {str(e)}. Phản hồi thô: {response.text}"
-        elif response.status_code == 429:
-            # Phân tích thông báo lỗi để trích xuất thời gian chờ (nếu có)
-            msg = ""
-            try:
-                res_json = response.json()
-                msg = res_json.get('error', {}).get('message', '')
-            except Exception:
-                msg = response.text
+    max_retries = 3
+    retry_delay = 3  # số giây chờ ban đầu
+    
+    for attempt in range(max_retries + 1):
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=180)
             
-            wait_time = ""
-            if "retry in" in msg:
+            if response.status_code == 200:
+                res_json = response.json()
                 try:
-                    import re
-                    match = re.search(r'retry in ([\d\.]+s|[\d\.]+ seconds)', msg)
-                    if match:
-                        wait_time = f" (Vui lòng thử lại sau khoảng {match.group(1)})"
+                    return res_json['candidates'][0]['content']['parts'][0]['text']
+                except Exception as e:
+                    return f"Lỗi cấu trúc phản hồi từ API: {str(e)}. Phản hồi thô: {response.text}"
+            
+            # Nếu gặp lỗi quá tải (503) hoặc giới hạn tần suất tạm thời (429) và còn lượt thử lại
+            elif response.status_code in [429, 503] and attempt < max_retries:
+                # Nếu là 503, in thông báo log để Streamlit hiển thị quá trình tự động thử lại
+                st.warning(f"⚠️ Hệ thống Google Gemini đang bị quá tải (Lỗi {response.status_code}). Đang tự động kết nối lại lần {attempt + 1}/{max_retries} sau {retry_delay} giây...")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # tăng gấp đôi thời gian chờ cho lần tiếp theo (Exponential backoff)
+                continue
+                
+            elif response.status_code == 429:
+                # Phân tích thông báo lỗi khi đã hết số lần thử lại
+                msg = ""
+                try:
+                    res_json = response.json()
+                    msg = res_json.get('error', {}).get('message', '')
                 except Exception:
-                    pass
-                    
-            return f"""⚠️ **LỖI HẠN MỨC YÊU CẦU (HTTP 429 - RESOURCE EXHAUSTED)**
-
+                    msg = response.text
+                
+                wait_time = ""
+                if "retry in" in msg:
+                    try:
+                        import re
+                        match = re.search(r'retry in ([\d\.]+s|[\d\.]+ seconds)', msg)
+                        if match:
+                            wait_time = f" (Vui lòng thử lại sau khoảng {match.group(1)})"
+                    except Exception:
+                        pass
+                        
+                return f"""⚠️ **LỖI HẠN MỨC YÊU CẦU (HTTP 429 - RESOURCE EXHAUSTED)**
+    
 Tài khoản hoặc khóa API Key của bạn đã vượt quá giới hạn yêu cầu cho phép của Google Gemini (Gói miễn phí Free Tier){wait_time}.
-
+    
 **Cách khắc phục:**
-1. **Chờ đợi**: Gói miễn phí thường giới hạn số lượng yêu cầu mỗi phút (15 RPM). Bạn chỉ cần đợi từ 10-30 giây rồi nhấn chạy lại.
+1. **Chờ đợi**: Gói miễn phí giới hạn số lượng yêu cầu mỗi phút (15 RPM). Vui lòng đợi khoảng 30 giây rồi nhấn chạy lại.
 2. **Đổi API Key**: Nếu bạn đã gọi quá nhiều trong ngày (vượt quá hạn mức ngày), hãy đăng nhập vào Google AI Studio để tạo và nhập một khóa API mới.
 3. **Nâng cấp tài khoản**: Thiết lập thanh toán Pay-as-you-go trên Google AI Studio để có hạn mức cao hơn và ổn định hơn.
 """
-        else:
-            return f"Lỗi gọi Gemini API (HTTP {response.status_code}): {response.text}"
-    except requests.exceptions.Timeout:
-        return "Lỗi: Kết nối tới Gemini API bị quá thời gian chờ (Timeout 180 giây). Vui lòng thử lại."
-    except Exception as e:
-        return f"Lỗi kết nối API: {str(e)}"
+            elif response.status_code == 503:
+                return """⚠️ **HỆ THỐNG GOOGLE GEMINI QUÁ TẢI (HTTP 503 - SERVICE UNAVAILABLE)**
+    
+Hiện tại máy chủ Google Gemini đang nhận số lượng yêu cầu cực kỳ lớn dẫn đến quá tải tạm thời. Hệ thống đã tự động thử kết nối lại 3 lần nhưng không thành công.
+
+**Cách khắc phục:**
+1. Hãy đợi khoảng 15-30 giây và nhấn nút **Bắt đầu Thẩm định bằng AI** để thử lại.
+2. Nếu lỗi vẫn tiếp tục xảy ra, đây là sự cố nghẽn mạng diện rộng từ phía Google, bạn vui lòng quay lại sử dụng sau ít phút.
+"""
+            else:
+                return f"Lỗi gọi Gemini API (HTTP {response.status_code}): {response.text}"
+                
+        except requests.exceptions.Timeout:
+            if attempt < max_retries:
+                st.warning(f"⚠️ Kết nối bị quá hạn. Đang tự động kết nối lại lần {attempt + 1}/{max_retries}...")
+                time.sleep(retry_delay)
+                retry_delay *= 2
+                continue
+            return "Lỗi: Kết nối tới Gemini API bị quá thời gian chờ (Timeout 180 giây). Vui lòng thử lại."
+        except Exception as e:
+            if attempt < max_retries:
+                time.sleep(retry_delay)
+                retry_delay *= 2
+                continue
+            return f"Lỗi kết nối API: {str(e)}"
 
 # Helper: Gọi Gemini API để thẩm định hợp đồng
 def tham_dinh_bang_gemini(noi_dung_hop_dong, api_key, tieu_chuan_doi_chieu):
