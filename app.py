@@ -298,10 +298,10 @@ Tài khoản hoặc khóa API Key của bạn đã vượt quá giới hạn yê
 def tham_dinh_bang_gemini(noi_dung_hop_dong, api_key, tieu_chuan_doi_chieu):
     prompt_chuyen_gia = f"""
 Mục tiêu:
-Bạn là một Chuyên gia Pháp lý và Luật sư doanh nghiệp dày dạn kinh nghiệm. Nhiệm vụ của bạn là thẩm định chi tiết các điều khoản trong văn bản hợp đồng được cung cấp, dựa trên cơ sở pháp luật hiện hành của Việt Nam.
+Bạn là một Chuyên gia Pháp lý và Luật sư doanh nghiệp dày dạn kinh nghiệm. Nhiệm vụ của bạn là thẩm định chi tiết các điều khoản trong văn bản hợp đồng được cung cấp, dựa trên cơ sở pháp luật hiện hành của Việt Nam, đặc biệt cập nhật và áp dụng Luật Xây dựng số 135/2025/QH15 mới nhất (hiệu lực 01/07/2026) cùng các Nghị định hướng dẫn đi kèm (đặc biệt là **Nghị định 210/2026/NĐ-CP** về hợp đồng xây dựng, **Nghị định 217/2026/NĐ-CP** về quản lý dự án, **Nghị định 207/2026/NĐ-CP** về quản lý chất lượng) và Luật Đầu tư số 143/2025/QH15 mới nhất (hiệu lực 01/03/2026) cùng **Nghị định 96/2026/NĐ-CP** hướng dẫn thi hành.
 
 Bối cảnh:
-Văn bản đầu vào là một hợp đồng pháp lý. Các điều khoản trong hợp đồng cần phải rõ ràng, thống nhất, không được có sự xung đột nội bộ giữa các điều khoản với nhau, và tuyệt đối không được trái với các quy định của pháp luật Việt Nam.
+Văn bản đầu vào là một hợp đồng pháp lý. Các điều khoản trong hợp đồng cần phải rõ ràng, thống nhất, không được có sự xung đột nội bộ giữa các điều khoản với nhau, và tuyệt đối không được trái với các quy định của pháp luật Việt Nam (như Bộ luật Dân sự, Luật Thương mại, Luật Xây dựng số 135/2025/QH15, Luật Đầu tư số 143/2025/QH15 và các Nghị định hướng dẫn liên quan).
 
 Quy định về cấu trúc hợp đồng:
 Hợp đồng tuân theo cấu trúc phân cấp: Điều -> Khoản -> Điểm.
