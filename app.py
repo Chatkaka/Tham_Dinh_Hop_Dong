@@ -252,7 +252,7 @@ def call_gemini_api_rest(prompt, api_key):
     }
     
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=90)
+        response = requests.post(url, headers=headers, json=payload, timeout=180)
         if response.status_code == 200:
             res_json = response.json()
             try:
@@ -290,7 +290,7 @@ Tài khoản hoặc khóa API Key của bạn đã vượt quá giới hạn yê
         else:
             return f"Lỗi gọi Gemini API (HTTP {response.status_code}): {response.text}"
     except requests.exceptions.Timeout:
-        return "Lỗi: Kết nối tới Gemini API bị quá thời gian chờ (Timeout 90 giây). Vui lòng thử lại."
+        return "Lỗi: Kết nối tới Gemini API bị quá thời gian chờ (Timeout 180 giây). Vui lòng thử lại."
     except Exception as e:
         return f"Lỗi kết nối API: {str(e)}"
 
